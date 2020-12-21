@@ -31,7 +31,7 @@ impl<T> SkipLinkedList<T> {
             return false;
         }
 
-        let mut i = i + 1; // relative to sentinel
+        let i = i + 1; // relative to sentinel
         let top_level_inserted = Node::insert(&mut self.entry, i, elem);
         self.size += 1;
         match (top_level_inserted, thread_rng().gen_bool(0.5)) {
@@ -54,7 +54,7 @@ impl<T> SkipLinkedList<T> {
         if i >= self.size {
             return None;
         }
-        Node::get(&self.entry, i)
+        Node::get(&self.entry, i + 1)
     }
 
     pub fn remove(&mut self, _i: usize) -> T {
@@ -179,8 +179,14 @@ impl<T> Node<T> {
                 this_level_added = NonNull::new(raw_new_node);
                 None
             },
-            Node::Sentinel { down: Some(node), .. } => Node::insert(node, i, elem),
-            Node::Index { down: raw_node, .. } => Node::insert(unsafe { raw_node.as_mut() }, i, elem),
+            Node::Sentinel { down: Some(node), delta, .. } => {
+                *delta += 1;
+                Node::insert(node, i, elem)
+            }
+            Node::Index { down: raw_node, delta, .. } => {
+                *delta += 1;
+                Node::insert(unsafe { raw_node.as_mut() }, i, elem)
+            }
         };
         if next_level_inserted.is_some() && thread_rng().gen_bool(0.5) {
             next_level_inserted.map(|raw_node| {
@@ -189,7 +195,7 @@ impl<T> Node<T> {
                         let mut new_node = Box::new(Node::Index {
                             right: right.take(),
                             down: raw_node,
-                            delta: *delta - i + 1,
+                            delta: *delta - i,
                         });
                         let raw_new_node: *mut _ = &mut *new_node;
                         *right = Some(new_node);
@@ -200,7 +206,7 @@ impl<T> Node<T> {
                         let mut new_node = Box::new(Node::Index {
                             right: right.take(),
                             down: raw_node,
-                            delta: *delta - i + 1,
+                            delta: *delta - i,
                         });
                         let raw_new_node: *mut _ = &mut *new_node;
                         *right = Some(new_node);
@@ -210,8 +216,6 @@ impl<T> Node<T> {
                     _ => (),
                 }
             });
-        } else {
-            self.delta_mut().map (|delta| *delta += 1);
         }
         this_level_added
     }

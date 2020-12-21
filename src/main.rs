@@ -3,6 +3,10 @@ use std::io::{self, Write};
 mod skip_linked_list;
 use crate::skip_linked_list::SkipLinkedList;
 
+fn help() {
+    println!("Unknown command, type h for help");
+}
+
 fn main() {
     let mut list = SkipLinkedList::new();
     loop {
@@ -21,20 +25,23 @@ fn main() {
                             println!("fail to insert");
                         }
                     },
-                    _ => println!("Unknown command, type h for help"),
+                    _ => help(),
                 }
             },
-            b'f' => {
-                match line[1..].trim().parse::<i32>() {
-                    Ok(elem) => list.push_front(elem),
-                    _ => println!("Unknown command, type h for help"),
-                }
+            b'f' => match line[1..].trim().parse::<i32>() {
+                Ok(elem) => list.push_front(elem),
+                _ => help(),
             },
-            b'b' => {
-                match line[1..].trim().parse::<i32>() {
-                    Ok(elem) => list.push_back(elem),
-                    _ => println!("Unknown command, type h for help"),
-                }
+            b'b' => match line[1..].trim().parse::<i32>() {
+                Ok(elem) => list.push_back(elem),
+                _ => help(),
+            },
+            b'g' => match line[1..].trim().parse::<usize>() {
+                Ok(i) => match list.get(i) {
+                    Some(elem) => println!("{}", elem),
+                    None => println!("fail to get"),
+                },
+                _ => help(),
             },
             b'l' => println!("{}", list.len()),
             b'p' => list.visualize(),
