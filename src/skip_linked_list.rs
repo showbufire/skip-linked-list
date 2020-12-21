@@ -236,3 +236,26 @@ impl<T> Node<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn basics() {
+        let mut list = SkipLinkedList::new();
+        list.push_back(1);
+        list.push_back(2);
+        list.push_back(3);
+        list.push_front(30);
+        list.push_front(20);
+        list.push_front(10);
+        list.insert(3, 100);
+        assert_eq!(list.len(), 7);
+        let expected = vec![10, 20, 30, 100, 1, 2, 3];
+        for (i, elem) in expected.iter().enumerate() {
+            assert_eq!(list.get(i), Some(elem));
+        }
+        assert_eq!(list.get(10), None);
+    }
+}
