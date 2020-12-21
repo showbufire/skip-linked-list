@@ -162,62 +162,47 @@ impl<T> Node<T> {
         }
     }
 
+    fn insert_content_after(&mut self, elem: T) -> Option<WeakLink<T>> {
+        let right = self.right_mut();
+        let mut new_node = Box::new(Node::Content { elem, right: right.take() });
+        let raw_new_node: *mut _ = &mut *new_node;
+        *right = Some(new_node);
+        NonNull::new(raw_new_node)
+    }
+
+    fn insert_index_after(&mut self, i: usize, next_level_inserted: WeakLink<T>) -> Option<WeakLink<T>> {
+        let delta = self.delta();
+        let right = self.right_mut();
+        let mut new_node = Box::new(Node::Index {
+            right: right.take(),
+            down: next_level_inserted,
+            delta: delta - i,
+        });
+        let raw_new_node: *mut _ = &mut *new_node;
+        *right = Some(new_node);
+        *self.delta_mut().unwrap() = i;
+        NonNull::new(raw_new_node)
+    }
+
     fn insert_at(&mut self, i: usize, elem: T) -> Option<WeakLink<T>> {
-        let mut this_level_added = None;
-        let next_level_inserted = match self {
-            Node::Content { right, .. } => {
-                let mut new_node = Box::new(Node::Content { elem, right: right.take() });
-                let raw_new_node: *mut _ = &mut *new_node;
-                *right = Some(new_node);
-                this_level_added = NonNull::new(raw_new_node);
-                None
-            },
-            Node::Sentinel { down: None, right, .. } => {
-                let mut new_node = Box::new(Node::Content { elem, right: right.take() });
-                let raw_new_node: *mut _ = &mut *new_node;
-                *right = Some(new_node);
-                this_level_added = NonNull::new(raw_new_node);
-                None
-            },
+        match self {
+            Node::Content { .. } => self.insert_content_after(elem),
+            Node::Sentinel { down: None, .. } => self.insert_content_after(elem),
             Node::Sentinel { down: Some(node), delta, .. } => {
                 *delta += 1;
-                Node::insert(node, i, elem)
-            }
+                match (Node::insert(node, i, elem), thread_rng().gen_bool(0.5)) {
+                    (Some(next_level_inserted), true) => self.insert_index_after(i, next_level_inserted),
+                    _ => None,
+                }
+            },
             Node::Index { down: raw_node, delta, .. } => {
                 *delta += 1;
-                Node::insert(unsafe { raw_node.as_mut() }, i, elem)
-            }
-        };
-        if next_level_inserted.is_some() && thread_rng().gen_bool(0.5) {
-            next_level_inserted.map(|raw_node| {
-                match self {
-                    Node::Sentinel { right, delta, .. } => {
-                        let mut new_node = Box::new(Node::Index {
-                            right: right.take(),
-                            down: raw_node,
-                            delta: *delta - i,
-                        });
-                        let raw_new_node: *mut _ = &mut *new_node;
-                        *right = Some(new_node);
-                        *delta = i;
-                        this_level_added = NonNull::new(raw_new_node);
-                    },
-                    Node::Index { right, delta, .. } => {
-                        let mut new_node = Box::new(Node::Index {
-                            right: right.take(),
-                            down: raw_node,
-                            delta: *delta - i,
-                        });
-                        let raw_new_node: *mut _ = &mut *new_node;
-                        *right = Some(new_node);
-                        *delta = i;
-                        this_level_added = NonNull::new(raw_new_node);
-                    },
-                    _ => (),
+                match (Node::insert(unsafe { raw_node.as_mut() }, i, elem), thread_rng().gen_bool(0.5)) {
+                    (Some(next_level_inserted), true) => self.insert_index_after(i, next_level_inserted),
+                    _ => None,
                 }
-            });
+            },
         }
-        this_level_added
     }
 
     fn delta(&self) -> usize {
