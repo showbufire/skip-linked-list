@@ -77,6 +77,30 @@ impl<T> SkipLinkedList<T> {
         self.insert(self.size, elem);
     }
 
+    pub fn iter(&self) -> Iter<T> {
+        let mut node = self.entry.as_ref();
+        while let Node::Sentinel{ down: Some(next_node), .. } = node {
+            node = next_node;
+        }
+        Iter(node.right())
+    }
+}
+
+pub struct Iter<'a, T>(Option<&'a Link<T>>);
+
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.take().and_then(|node| {
+            if let Node::Content { elem, right } = node.as_ref() {
+                self.0 = right.as_ref();
+                Some(elem)
+            } else {
+                None
+            }
+        })
+    }
 }
 
 const WIDTH: usize = 4;
@@ -190,8 +214,7 @@ impl<T> Node<T> {
 
     fn insert_at(&mut self, i: usize, elem: T) -> Option<WeakLink<T>> {
         match self {
-            Node::Content { .. } => self.insert_content_after(elem),
-            Node::Sentinel { down: None, .. } => self.insert_content_after(elem),
+            Node::Content { .. } | Node:: Sentinel { down: None, .. } => self.insert_content_after(elem),
             Node::Sentinel { down: Some(node), delta, .. } => {
                 *delta += 1;
                 match (Node::insert(node, i, elem), thread_rng().gen_bool(0.5)) {
@@ -294,8 +317,7 @@ impl<T> Drop for SkipLinkedList<T> {
 mod test {
     use super::*;
 
-    #[test]
-    fn basics() {
+    fn setup_list() -> SkipLinkedList<i32> {
         let mut list = SkipLinkedList::new();
         list.push_back(1);
         list.push_back(2);
@@ -304,6 +326,12 @@ mod test {
         list.push_front(20);
         list.push_front(10);
         list.insert(3, 100);
+        list
+    }
+
+    #[test]
+    fn basics() {
+        let mut list = setup_list();
         assert_eq!(list.len(), 7);
         let expected = vec![10, 20, 30, 100, 1, 2, 3];
         for (i, elem) in expected.iter().enumerate() {
@@ -315,6 +343,17 @@ mod test {
         assert_eq!(list.remove(4), Some(3));
         assert_eq!(list.remove(2), Some(1));
         assert_eq!(list.remove(10), None);
+    }
+
+    #[test]
+    fn iter() {
+        let mut list = setup_list();
+        let mut iter = list.iter();
+        let expected = vec![10, 20, 30, 100, 1, 2, 3];
+        for elem in expected.iter() {
+            assert_eq!(iter.next(), Some(elem));
+        }
+        assert_eq!(iter.next(), None);
     }
 
     #[test]
