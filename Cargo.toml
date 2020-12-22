@@ -9,3 +9,9 @@ edition = "2018"
 [dependencies]
 rand="0.7.3"
 
+[dev-dependencies]
+criterion="0.3.3"
+
+[[bench]]
+name = "skip_linked_list_vs_vec"
+harness = false
