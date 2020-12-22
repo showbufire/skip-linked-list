@@ -271,6 +271,23 @@ impl<T> Node<T> {
             Node::Index { delta, .. } => Some(delta),
         }
     }
+
+    fn drop_after(sentinel: &mut Node<T>) {
+        sentinel.right_mut().take().map(|mut node| {
+            while let Some(next_node) = node.right_mut().take() {
+                node = next_node;
+            }
+        });
+        if let Node::Sentinel { down: Some(next_sentinel), .. } = sentinel {
+            Node::drop_after(next_sentinel);
+        }
+    }
+}
+
+impl<T> Drop for SkipLinkedList<T> {
+    fn drop(&mut self) {
+        Node::drop_after(&mut self.entry);
+    }
 }
 
 #[cfg(test)]
@@ -298,5 +315,14 @@ mod test {
         assert_eq!(list.remove(4), Some(3));
         assert_eq!(list.remove(2), Some(1));
         assert_eq!(list.remove(10), None);
+    }
+
+    #[test]
+    fn drop() {
+        let size = 50000;
+        let mut list = SkipLinkedList::new();
+        for _ in 0..size {
+            list.push_front(1);
+        }
     }
 }
