@@ -84,6 +84,31 @@ impl<T> SkipLinkedList<T> {
         }
         Iter(node.right())
     }
+
+    pub fn iter_mut(&mut self) -> IterMut<T> {
+        let mut node = self.entry.as_mut();
+        while let Node::Sentinel{ down: Some(next_node), .. } = node {
+            node = next_node;
+        }
+        IterMut(node.right_mut().as_mut())
+    }
+}
+
+pub struct IterMut<'a, T>(Option<&'a mut Link<T>>);
+
+impl<'a, T> Iterator for IterMut<'a, T> {
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.take().and_then(|node| {
+            if let Node::Content { elem, right } = node.as_mut() {
+                self.0 = right.as_mut();
+                Some(elem)
+            } else {
+                None
+            }
+        })
+    }
 }
 
 pub struct Iter<'a, T>(Option<&'a Link<T>>);
@@ -347,9 +372,24 @@ mod test {
 
     #[test]
     fn iter() {
-        let mut list = setup_list();
+        let list = setup_list();
         let mut iter = list.iter();
         let expected = vec![10, 20, 30, 100, 1, 2, 3];
+        for elem in expected.iter() {
+            assert_eq!(iter.next(), Some(elem));
+        }
+        assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn iter_mut() {
+        let mut list = setup_list();
+        let mut iter_mut = list.iter_mut();
+        while let Some(elem) = iter_mut.next() {
+            *elem += 1;
+        }
+        let expected = vec![11, 21, 31, 101, 2, 3, 4];
+        let mut iter = list.iter();
         for elem in expected.iter() {
             assert_eq!(iter.next(), Some(elem));
         }
