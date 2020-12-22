@@ -77,6 +77,14 @@ impl<T> SkipLinkedList<T> {
         self.insert(self.size, elem);
     }
 
+    pub fn pop_front(&mut self) -> Option<T> {
+        self.remove(0)
+    }
+
+    pub fn pop_back(&mut self) -> Option<T> {
+        self.remove(self.size - 1)
+    }
+
     pub fn iter(&self) -> Iter<T> {
         let mut node = self.entry.as_ref();
         while let Node::Sentinel{ down: Some(next_node), .. } = node {
@@ -91,6 +99,20 @@ impl<T> SkipLinkedList<T> {
             node = next_node;
         }
         IterMut(node.right_mut().as_mut())
+    }
+
+    pub fn into_iter(self) -> IntoIter<T> {
+        IntoIter(self)
+    }
+}
+
+pub struct IntoIter<T>(SkipLinkedList<T>);
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop_front()
     }
 }
 
@@ -394,6 +416,18 @@ mod test {
             assert_eq!(iter.next(), Some(elem));
         }
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn into_iter() {
+        let list = setup_list();
+        let expected = vec![10, 20, 30, 100, 1, 2, 3];
+        let mut into_iter = list.into_iter();
+
+        for elem in expected {
+            assert_eq!(into_iter.next(), Some(elem));
+        }
+        assert_eq!(into_iter.next(), None);
     }
 
     #[test]
