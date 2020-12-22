@@ -57,8 +57,12 @@ impl<T> SkipLinkedList<T> {
         Node::get(&self.entry, i + 1)
     }
 
-    pub fn remove(&mut self, _i: usize) -> T {
-        todo!()
+    pub fn remove(&mut self, i: usize) -> Option<T> {
+        if i >= self.size {
+            return None;
+        }
+        self.size -= 1;
+        Some(Node::remove(&mut self.entry, i))
     }
 
     pub fn len(&self) -> usize {
@@ -205,6 +209,53 @@ impl<T> Node<T> {
         }
     }
 
+    fn remove(start_node: &mut Node<T>, i: usize) -> T {
+        let mut i = i;
+        let mut node = start_node;
+
+        while node.delta() <= i {
+            i -= node.delta();
+            node = node.right_mut().as_mut().unwrap();
+        }
+        node.remove_after(i)
+    }
+
+    fn remove_after(&mut self, i: usize) -> T {
+        match self {
+            Node::Sentinel { down: Some(node), delta, .. } => {
+                let removed = Node::remove(node, i);
+                if *delta == i + 1 {
+                    self.remove_right();
+                } else {
+                    *delta -= 1;
+                };
+                removed
+            },
+            Node::Index { down: raw_node, delta, .. } => {
+                let removed = Node::remove(unsafe { raw_node.as_mut() }, i);
+                if *delta == i + 1 {
+                    self.remove_right();
+                } else {
+                    *delta -= 1;
+                }
+                removed
+            },
+            Node::Sentinel { down: None, .. } => self.remove_right().unwrap(),
+            Node::Content {.. } => self.remove_right().unwrap(),
+        }
+    }
+
+    fn remove_right(&mut self) -> Option<T> {
+        let right = self.right_mut();
+        let mut removed = right.take().unwrap();
+        *right = removed.right_mut().take();
+        self.delta_mut().map (|delta| *delta += removed.delta() - 1);
+        match *removed {
+            Node::Content { elem, .. } => Some(elem),
+            _ => None,
+        }
+    }
+
     fn delta(&self) -> usize {
         match self {
             Node::Sentinel { delta, .. } => *delta,
@@ -242,5 +293,10 @@ mod test {
             assert_eq!(list.get(i), Some(elem));
         }
         assert_eq!(list.get(10), None);
+        assert_eq!(list.remove(0), Some(10));
+        assert_eq!(list.remove(0), Some(20));
+        assert_eq!(list.remove(4), Some(3));
+        assert_eq!(list.remove(2), Some(1));
+        assert_eq!(list.remove(10), None);
     }
 }

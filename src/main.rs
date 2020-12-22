@@ -43,6 +43,13 @@ fn main() {
                 },
                 _ => help(),
             },
+            b'r' => match line[1..].trim().parse::<usize>() {
+                Ok(i) => match list.remove(i) {
+                    Some(elem) => println!("{}", elem),
+                    None => println!("fail to remove"),
+                },
+                _ => help(),
+            },
             b'l' => println!("{}", list.len()),
             b'p' => list.visualize(),
             b'c' => list = SkipLinkedList::new(),
