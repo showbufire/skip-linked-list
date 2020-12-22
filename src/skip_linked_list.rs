@@ -393,6 +393,25 @@ mod test {
     }
 
     #[test]
+    fn small_random() {
+        let mut list = SkipLinkedList::new();
+        let mut vec = Vec::new();
+
+        let mut size = 0;
+        for _ in 0..1000 {
+            size += 1;
+            let elem: i32 = thread_rng().gen();
+            let idx: usize = thread_rng().gen_range(0, size);
+            list.insert(idx, elem);
+            vec.insert(idx, elem);
+        }
+        assert_eq!(list.len(), vec.len());
+        for i in 0..1000 {
+            assert_eq!(list.get(i), vec.get(i));
+        }
+    }
+
+    #[test]
     fn iter() {
         let list = setup_list();
         let mut iter = list.iter();
