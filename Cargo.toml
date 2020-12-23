@@ -1,8 +1,10 @@
 [package]
 name = "skip-linked-list"
 version = "0.1.0"
-authors = ["Xiao Jiang"]
+authors = ["Xiao Jiang <showbufire@gmail.com>"]
 edition = "2018"
+license = "MIT"
+description = "a skiplist-backed linked list that support fast random writes, written in Rust."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
