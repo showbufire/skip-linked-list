@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 
-mod skip_linked_list;
-use crate::skip_linked_list::SkipLinkedList;
+mod list;
+use crate::list::SkipLinkedList;
 
 fn help() {
     println!("Unknown command, type h for help");

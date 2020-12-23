@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
-use skip_linked_list::skip_linked_list::SkipLinkedList;
+use skip_linked_list::list::SkipLinkedList;
 use rand::prelude::*;
 use rand::distributions::WeightedIndex;
 

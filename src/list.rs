@@ -4,6 +4,27 @@ use rand::{thread_rng, Rng};
 use std::ptr::NonNull;
 use std::fmt::Display;
 
+/// # SkipLinkedList
+///
+/// `SkipLinkedList` is a skiplist-backed linked-list that supports fast random access.
+/// The (amortized) time complexity is `O(log n)` for both reads and writes, regardless of the position.
+/// It is more efficient than `Vec` and `Linkedlist` for large list that requires lots of random access.
+///
+/// # Examples
+/// ```
+/// let mut list = skip_linked_list::SkipLinkedList::new();
+///
+/// list.push_front(1);
+/// list.push_back(2);
+/// list.insert(1, 3);
+/// list.insert(1, 4);
+/// list.insert(1, 5);
+/// // current list is: [1, 5, 4, 3, 2]
+///
+/// assert_eq!(list.get(1), Some(&5));
+/// assert_eq!(list.get(3), Some(&3));
+/// assert_eq!(list.remove(2), Some(4));
+/// ```
 pub struct SkipLinkedList<T> {
     size: usize,
     entry: Link<T>,
@@ -26,6 +47,7 @@ impl<T> SkipLinkedList<T> {
         }
     }
 
+    /// Inserts an element at position index within the list, shifting all elements after it to the right.
     pub fn insert(&mut self, i: usize, elem: T) -> bool {
         if i > self.size {
             return false;
@@ -50,6 +72,7 @@ impl<T> SkipLinkedList<T> {
         return true;
     }
 
+    /// Gets the element at position index within the list.
     pub fn get(&self, i: usize) -> Option<&T> {
         if i >= self.size {
             return None;
@@ -57,6 +80,7 @@ impl<T> SkipLinkedList<T> {
         Node::get(&self.entry, i + 1)
     }
 
+    /// Removes an element at position index within the list, shifting all elements after it to the left.
     pub fn remove(&mut self, i: usize) -> Option<T> {
         if i >= self.size {
             return None;
@@ -69,22 +93,35 @@ impl<T> SkipLinkedList<T> {
         self.size
     }
 
+    /// Inserts an element at the start of the list.
     pub fn push_front(&mut self, elem: T) {
         self.insert(0, elem);
     }
 
+    /// Inserts an element at the end of the list.
     pub fn push_back(&mut self, elem: T) {
         self.insert(self.size, elem);
     }
 
+    /// Removes an element at the start of the list.
     pub fn pop_front(&mut self) -> Option<T> {
-        self.remove(0)
+        if self.size > 0 {
+            self.remove(0)
+        } else {
+            None
+        }
     }
 
+    /// Removes an element at the end of the list.
     pub fn pop_back(&mut self) -> Option<T> {
-        self.remove(self.size - 1)
+        if self.size > 0 {
+            self.remove(self.size - 1)
+        } else {
+            None
+        }
     }
 
+    /// Returns an iterator over the list.
     pub fn iter(&self) -> Iter<T> {
         let mut node = self.entry.as_ref();
         while let Node::Sentinel{ down: Some(next_node), .. } = node {
@@ -93,6 +130,7 @@ impl<T> SkipLinkedList<T> {
         Iter(node.right())
     }
 
+    /// Returns an mut iterator over the list.
     pub fn iter_mut(&mut self) -> IterMut<T> {
         let mut node = self.entry.as_mut();
         while let Node::Sentinel{ down: Some(next_node), .. } = node {
@@ -101,6 +139,7 @@ impl<T> SkipLinkedList<T> {
         IterMut(node.right_mut().as_mut())
     }
 
+    /// Consumes the list, and changes it into an iterator.
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
@@ -153,6 +192,8 @@ impl<'a, T> Iterator for Iter<'a, T> {
 const WIDTH: usize = 4;
 
 impl<T> SkipLinkedList<T> where T: Display {
+
+    /// Prints the internals of the list.
     pub fn visualize(&self) {
         let mut option_node = Some(&self.entry);
         while let Some(node) = option_node.take() {
@@ -456,5 +497,21 @@ mod test {
         for _ in 0..size {
             list.push_front(1);
         }
+    }
+
+    #[test]
+    fn pops() {
+        let mut list = SkipLinkedList::new();
+        list.push_front(1);
+        list.push_front(2);
+        assert_eq!(list.pop_front(), Some(2));
+        assert_eq!(list.pop_front(), Some(1));
+        assert_eq!(list.pop_front(), None);
+
+        list.push_back(1);
+        list.push_back(2);
+        assert_eq!(list.pop_back(), Some(2));
+        assert_eq!(list.pop_back(), Some(1));
+        assert_eq!(list.pop_back(), None);
     }
 }
