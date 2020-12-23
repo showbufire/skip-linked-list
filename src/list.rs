@@ -23,7 +23,7 @@ use std::fmt::Display;
 ///
 /// assert_eq!(list.get(1), Some(&5));
 /// assert_eq!(list.get(3), Some(&3));
-/// assert_eq!(list.remove(2), Some(4));
+/// assert_eq!(list.remove(2), 4);
 /// ```
 pub struct SkipLinkedList<T> {
     size: usize,
@@ -40,6 +40,8 @@ enum Node<T> {
 }
 
 impl<T> SkipLinkedList<T> {
+
+    /// Creates a new list.
     pub fn new() -> Self {
         Self {
             size: 0,
@@ -48,9 +50,23 @@ impl<T> SkipLinkedList<T> {
     }
 
     /// Inserts an element at position index within the list, shifting all elements after it to the right.
-    pub fn insert(&mut self, i: usize, elem: T) -> bool {
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut list = skip_linked_list::SkipLinkedList::new();
+    /// list.insert(0, 10);
+    /// list.insert(1, 30);
+    /// list.insert(1, 20);
+    /// assert_eq!(list.into_iter().collect::<Vec<i32>>(), vec![10, 20, 30]);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if `i > len`.
+    pub fn insert(&mut self, i: usize, elem: T) {
         if i > self.size {
-            return false;
+            panic!("insert position {} should be <= len (is {})", i, self.size);
         }
 
         let i = i + 1; // relative to sentinel
@@ -68,11 +84,18 @@ impl<T> SkipLinkedList<T> {
             },
             _ => (),
         }
-
-        return true;
     }
 
     /// Gets the element at position index within the list.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut list = skip_linked_list::SkipLinkedList::new();
+    /// list.insert(0, 10);
+    /// assert_eq!(list.get(0), Some(&10));
+    /// assert_eq!(list.get(1), None);
+    /// ```
     pub fn get(&self, i: usize) -> Option<&T> {
         if i >= self.size {
             return None;
@@ -81,14 +104,30 @@ impl<T> SkipLinkedList<T> {
     }
 
     /// Removes an element at position index within the list, shifting all elements after it to the left.
-    pub fn remove(&mut self, i: usize) -> Option<T> {
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut list = skip_linked_list::SkipLinkedList::new();
+    /// list.insert(0, 10);
+    /// list.insert(1, 20);
+    /// assert_eq!(list.remove(0), 10);
+    /// assert_eq!(list.remove(0), 20);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Panics if `i >= len`.
+
+    pub fn remove(&mut self, i: usize) -> T {
         if i >= self.size {
-            return None;
+            panic!("remove position {} should be < len (is {})", i, self.size);
         }
         self.size -= 1;
-        Some(Node::remove(&mut self.entry, i))
+        Node::remove(&mut self.entry, i)
     }
 
+    /// Returns the length of the list.
     pub fn len(&self) -> usize {
         self.size
     }
@@ -104,20 +143,26 @@ impl<T> SkipLinkedList<T> {
     }
 
     /// Removes an element at the start of the list.
-    pub fn pop_front(&mut self) -> Option<T> {
+    /// # Panics
+    ///
+    /// Panics if list is empty.
+    pub fn pop_front(&mut self) -> T {
         if self.size > 0 {
             self.remove(0)
         } else {
-            None
+            panic!("can't pop an empty list")
         }
     }
 
     /// Removes an element at the end of the list.
-    pub fn pop_back(&mut self) -> Option<T> {
+    /// # Panics
+    ///
+    /// Panics if list is empty.
+    pub fn pop_back(&mut self) -> T {
         if self.size > 0 {
             self.remove(self.size - 1)
         } else {
-            None
+            panic!("can't pop an empty list")
         }
     }
 
@@ -139,7 +184,7 @@ impl<T> SkipLinkedList<T> {
         IterMut(node.right_mut().as_mut())
     }
 
-    /// Consumes the list, and changes it into an iterator.
+    /// Consumes the list into an iterator.
     pub fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
@@ -151,7 +196,11 @@ impl<T> Iterator for IntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.pop_front()
+        if self.0.len() > 0 {
+            Some(self.0.pop_front())
+        } else {
+            None
+        }
     }
 }
 
@@ -426,11 +475,10 @@ mod test {
             assert_eq!(list.get(i), Some(elem));
         }
         assert_eq!(list.get(10), None);
-        assert_eq!(list.remove(0), Some(10));
-        assert_eq!(list.remove(0), Some(20));
-        assert_eq!(list.remove(4), Some(3));
-        assert_eq!(list.remove(2), Some(1));
-        assert_eq!(list.remove(10), None);
+        assert_eq!(list.remove(0), 10);
+        assert_eq!(list.remove(0), 20);
+        assert_eq!(list.remove(4), 3);
+        assert_eq!(list.remove(2), 1);
     }
 
     #[test]
@@ -504,14 +552,33 @@ mod test {
         let mut list = SkipLinkedList::new();
         list.push_front(1);
         list.push_front(2);
-        assert_eq!(list.pop_front(), Some(2));
-        assert_eq!(list.pop_front(), Some(1));
-        assert_eq!(list.pop_front(), None);
+        assert_eq!(list.pop_front(), 2);
+        assert_eq!(list.pop_front(), 1);
 
         list.push_back(1);
         list.push_back(2);
-        assert_eq!(list.pop_back(), Some(2));
-        assert_eq!(list.pop_back(), Some(1));
-        assert_eq!(list.pop_back(), None);
+        assert_eq!(list.pop_back(), 2);
+        assert_eq!(list.pop_back(), 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn panic_pop_front() {
+        let mut list: SkipLinkedList<i32> = SkipLinkedList::new();
+        list.pop_front();
+    }
+
+    #[test]
+    #[should_panic]
+    fn panic_pop_back() {
+        let mut list: SkipLinkedList<i32> = SkipLinkedList::new();
+        list.pop_back();
+    }
+
+    #[test]
+    #[should_panic]
+    fn panic_insert() {
+        let mut list = SkipLinkedList::new();
+        list.insert(1, 3);
     }
 }

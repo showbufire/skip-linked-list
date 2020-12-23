@@ -18,13 +18,7 @@ fn main() {
             b'i' => {
                 let mut parts = line[1..].split_whitespace().map(|s| s.parse::<i32>());
                 match (parts.next(), parts.next()) {
-                    (Some(Ok(i)), Some(Ok(elem))) => {
-                        if list.insert(i as usize, elem) {
-                            println!("inserted");
-                        } else {
-                            println!("fail to insert");
-                        }
-                    },
+                    (Some(Ok(i)), Some(Ok(elem))) => list.insert(i as usize, elem),
                     _ => help(),
                 }
             },
@@ -44,10 +38,7 @@ fn main() {
                 _ => help(),
             },
             b'r' => match line[1..].trim().parse::<usize>() {
-                Ok(i) => match list.remove(i) {
-                    Some(elem) => println!("{}", elem),
-                    None => println!("fail to remove"),
-                },
+                Ok(i) => {list.remove(i);}
                 _ => help(),
             },
             b'l' => println!("{}", list.len()),
