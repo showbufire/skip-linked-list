@@ -5,6 +5,8 @@ authors = ["Xiao Jiang <showbufire@gmail.com>"]
 edition = "2018"
 license = "MIT"
 description = "a skiplist-backed linked list that support fast random writes, written in Rust."
+keywords = ["skiplist", "linked list", "random data structure", "data structure"]
+repository = "https://github.com/showbufire/skip-linked-list"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
